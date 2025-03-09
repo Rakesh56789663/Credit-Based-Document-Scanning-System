@@ -1,0 +1,1 @@
+Machine Learning is a subset of Artificial Intelligence (AI) that enables systems to learn from data and improve their performance over time without being explicitly programmed. Common algorithms include decision trees, support vector machines, and neural networks.

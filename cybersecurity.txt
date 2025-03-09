@@ -1,0 +1,1 @@
+Cybersecurity involves protecting systems, networks, and programs from digital attacks. Key practices include encryption, multi-factor authentication, and intrusion detection systems (IDS). Organizations follow frameworks like NIST and ISO/IEC 27001 for robust security measures.
