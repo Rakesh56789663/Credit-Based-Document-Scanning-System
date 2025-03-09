@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 p-5">
+    <div class="max-w-xl mx-auto bg-white p-6 rounded-lg shadow-md text-center">
+      <h1 class="text-2xl font-bold">Welcome, <span id="username"></span></h1>
+      <p class="mt-2 text-gray-600">
+        Credits: <span id="credits" class="font-semibold"></span>
+      </p>
+      <input
+        type="file"
+        id="file-upload"
+        class="mt-4 border p-2 rounded w-full"
+      />
+      <button
+        onclick="uploadFile()"
+        class="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
+      >
+        Upload & Scan
+      </button>
+      <button
+        onclick="requestCredits()"
+        class="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+      >
+        Request More Credits
+      </button>
+
+      <button
+        onclick="logout()"
+        class="mt-5 bg-red-500 text-white px-4 py-2 rounded"
+      >
+        Logout
+      </button>
+
+      <!-- Display Similarity Result -->
+      <p id="similarity-result" class="mt-4 text-lg font-semibold text-gray-700 hidden"></p>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        fetch("http://localhost:5000/auth/profile", {
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          },
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            sessionStorage.setItem("username", data.username);
+            sessionStorage.setItem("credits", data.credits);
+            sessionStorage.setItem("id", data.id);
+
+            document.getElementById("username").textContent = data.username;
+            document.getElementById("credits").textContent = data.credits;
+          });
+      });
+
+      function uploadFile() {
+        const fileInput = document.getElementById("file-upload");
+        const file = fileInput.files[0];
+        if (!file) return alert("Please select a file");
+
+        const userId = sessionStorage.getItem("id");
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch(`http://localhost:5000/scan/upload/${userId}`, {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            console.log(data.bestMatch)
+            if (data.bestMatch) {
+              document.getElementById("similarity-result").textContent = 
+                `Best Match: ${data.bestMatch.filename} (Similarity: ${data.bestMatch.similarity}%)`;
+              document.getElementById("similarity-result").classList.remove("hidden");
+            } else {
+              document.getElementById("similarity-result").textContent = "No matching document found.";
+              document.getElementById("similarity-result").classList.remove("hidden");
+            }
+          })
+          .catch((err) => console.error("Error:", err));
+      }
+
+      function requestCredits() {
+        const userId = sessionStorage.getItem("id");
+        fetch(`http://localhost:5000/credits/request/${userId}`, {
+          method: "POST",
+        })
+          .then((res) => res.json())
+          .then(() => {
+            alert("Credit request sent to admin!");
+          });
+      }
+
+      function logout() {
+        sessionStorage.clear();
+        window.location.href = "index.html";
+      }
+    </script>
+  </body>
+</html>

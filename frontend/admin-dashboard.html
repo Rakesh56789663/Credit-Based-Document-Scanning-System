@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 p-5">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+      <h1 class="text-2xl font-bold text-center">Admin Dashboard</h1>
+
+      <!-- Scans Per User -->
+      <h2 class="text-lg font-semibold mt-5">📊 Scans Per User Per Day</h2>
+      <table class="w-full mt-2 border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">User ID</th>
+            <th class="border p-2">Scan Count</th>
+            <th class="border p-2">Date</th>
+            <th class="border p-2">Used Scans</th>
+          </tr>
+        </thead>
+        <tbody id="scans-per-user"></tbody>
+      </table>
+
+      <!-- Common Topics -->
+      <h2 class="text-lg font-semibold mt-5">🔍 Common Topics</h2>
+      <ul id="common-topics" class="list-disc ml-5 mt-2"></ul>
+
+      <!-- Top Users -->
+      <h2 class="text-lg font-semibold mt-5">🏆 Top Users by Scan Count</h2>
+      <table class="w-full mt-2 border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">User ID</th>
+            <th class="border p-2">Username</th>
+            <th class="border p-2">Scan Count</th>
+          </tr>
+        </thead>
+        <tbody id="top-users"></tbody>7
+      </table>
+
+      <!-- Credit Usage -->
+      <h2 class="text-lg font-semibold mt-5">💰 Credit Usage Statistics</h2>
+      <table class="w-full mt-2 border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">Username</th>
+            <th class="border p-2">Credits Left</th>
+            <th class="border p-2">Used Credits</th>
+          </tr>
+        </thead>
+        <tbody id="credit-usage"></tbody>
+      </table>
+
+      <!-- Credit Requests -->
+      <h2 class="text-lg font-semibold mt-5">📝 Pending Credit Requests</h2>
+      <table class="w-full mt-2 border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">Request ID</th>
+            <th class="border p-2">User ID</th>
+            <th class="border p-2">Status</th>
+            <th class="border p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="credit-requests"></tbody>
+      </table>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        loadScansPerUser();
+        loadCommonTopics();
+        loadTopUsers();
+        loadCreditUsage();
+        loadCreditRequests();
+      });
+
+      function loadScansPerUser() {
+        updateTable("scans-per-user", "scans-per-user", false, true);
+      }
+
+      function loadCommonTopics() {
+        updateList("common-topics", "common-topics");
+      }
+
+      function loadTopUsers() {
+        updateTable("top-users", "top-users");
+      }
+
+      function loadCreditUsage() {
+        updateTable("credit-usage", "credit-usage");
+      }
+
+      function loadCreditRequests() {
+        fetch("http://localhost:5000/admin/requests")
+          .then((res) => res.json())
+          .then((data) => {
+            const container = document.getElementById("credit-requests");
+            container.innerHTML = "";
+
+            data.forEach((request) => {
+              const row = document.createElement("tr");
+
+              const idTd = document.createElement("td");
+              idTd.textContent = request.id;
+              idTd.classList.add("border", "p-2");
+              row.appendChild(idTd);
+
+              const userIdTd = document.createElement("td");
+              userIdTd.textContent = request.user_id;
+              userIdTd.classList.add("border", "p-2");
+              row.appendChild(userIdTd);
+
+              const statusTd = document.createElement("td");
+              statusTd.textContent = request.status;
+              statusTd.classList.add("border", "p-2");
+              row.appendChild(statusTd);
+
+              const actionsTd = document.createElement("td");
+              actionsTd.classList.add("border", "p-2", "flex", "gap-2");
+
+              const approveBtn = document.createElement("button");
+              approveBtn.textContent = "✅ Approve";
+              approveBtn.classList.add(
+                "bg-green-500",
+                "text-white",
+                "px-2",
+                "py-1",
+                "rounded"
+              );
+              approveBtn.onclick = () => handleRequest(request.id, "approve");
+
+              const rejectBtn = document.createElement("button");
+              rejectBtn.textContent = "❌ Reject";
+              rejectBtn.classList.add(
+                "bg-red-500",
+                "text-white",
+                "px-2",
+                "py-1",
+                "rounded"
+              );
+              rejectBtn.onclick = () => handleRequest(request.id, "reject");
+
+              actionsTd.appendChild(approveBtn);
+              actionsTd.appendChild(rejectBtn);
+              row.appendChild(actionsTd);
+
+              container.appendChild(row);
+            });
+          })
+          .catch((err) => console.error("Error loading credit requests:", err));
+      }
+
+      function handleRequest(requestId, action) {
+        fetch(`http://localhost:5000/admin/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestId }),
+        })
+          .then((res) => res.json())
+          .then(() => {
+            loadCreditRequests(); // Reload list after update
+          })
+          .catch((err) => console.error(`Error ${action} request:`, err));
+      }
+
+      function updateTable(
+        endpoint,
+        elementId,
+        isList = false,
+        calculateUsage = false
+      ) {
+        fetch(`http://localhost:5000/analytics/${endpoint}`)
+          .then((res) => res.json())
+          .then((data) => {
+            const container = document.getElementById(elementId);
+            container.innerHTML = "";
+
+            data[Object.keys(data)[0]].forEach((item) => {
+              const row = document.createElement("tr");
+              Object.values(item).forEach((value) => {
+                const td = document.createElement("td");
+                td.textContent = value;
+                td.classList.add("border", "p-2");
+                row.appendChild(td);
+              });
+
+              if (calculateUsage) {
+                const usedScansTd = document.createElement("td");
+                usedScansTd.textContent = item.scan_count ? item.scan_count : 0;
+                usedScansTd.classList.add("border", "p-2");
+                row.appendChild(usedScansTd);
+              }
+
+              container.appendChild(row);
+            });
+          })
+          .catch((err) => console.error("Error loading data:", err));
+      }
+
+      function updateList(endpoint, elementId) {
+        fetch(`http://localhost:5000/analytics/${endpoint}`)
+          .then((res) => res.json())
+          .then((data) => {
+            const container = document.getElementById(elementId);
+            container.innerHTML = "";
+
+            data.commonTopics.forEach(([word, count]) => {
+              const li = document.createElement("li");
+              li.textContent = `${word} (${count})`;
+              container.appendChild(li);
+            });
+          })
+          .catch((err) => console.error("Error loading data:", err));
+      }
+    </script>
+  </body>
+</html>
